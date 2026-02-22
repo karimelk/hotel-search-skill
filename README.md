@@ -6,7 +6,7 @@ This is not a generic demo skill. It reflects a setup that was hardened through 
 
 ---
 
-## What this skill does (in plain English)
+## What this skill does
 
 It helps an agent:
 
