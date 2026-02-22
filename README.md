@@ -1,82 +1,97 @@
-# 🏨 Hotel Search Skill (SerpAPI-First)
+# 🏨 Hotel Search Skill
+### SerpAPI-first • VPS-friendly • built from real-world trial and error
 
-A practical, **real-world-tested** hotel search workflow for AI agents.
-
-This is not a generic demo skill. It reflects a setup that was hardened through trial and error so others can skip the pain and get a working solution fast.
-
----
-
-## What this skill does
-
-It helps an agent:
-
-1. Search hotels for your destination and dates
-2. Find solid options by price + quality
-3. Compare the same hotel across booking sources
-4. Return a clean shortlist with tradeoffs and links
-
-So instead of random web browsing, you get a repeatable process.
+> A practical hotel-search workflow for AI agents.
+> 
+> This repo is meant to help people **skip setup pain** and get straight to a working process.
 
 ---
 
-## Why this is great for VPS agents
+## ✨ At a glance
 
-On VPS/cloud servers, browser-heavy workflows can be annoying:
-- pages block automation
-- dynamic content loads inconsistently
-- sessions/cookies/captchas break flows
-
-This skill is **script-first** and uses SerpAPI data directly, which is usually more stable for unattended agent workflows on VPS.
+- **What it does:** Finds hotel options, compares shortlisted hotels across booking sources, and returns clear recommendations.
+- **Who it’s for:** People using an AI assistant/agent (especially on a VPS).
+- **Why this exists:** Browser-based scraping and “click around” flows are often fragile on VPS. This script-first approach is more stable.
 
 ---
 
-## Important: you need a SerpAPI key
+## ✅ Easiest way to use it (no terminal needed)
 
-This skill expects `SERPAPI_API_KEY`.
+If you’re using an assistant like me, you normally just ask in plain English:
+
+- “Find me hotel options in Mallorca for these dates.”
+- “Compare this hotel across booking sources.”
+- “Give me best overall + best value.”
+
+That’s it. The assistant runs the underlying scripts for you.
+
+---
+
+## 🔑 You need a SerpAPI key (one-time setup)
+
+This skill uses `SERPAPI_API_KEY`.
 
 ### Good news
-SerpAPI typically offers free/trial usage that is enough for testing and light personal use.
+SerpAPI usually has free/trial usage that works well for testing and lighter personal usage.
 
-> Pricing and limits can change, so always check current details here:  
-> <https://serpapi.com/pricing>
+- Pricing/limits: <https://serpapi.com/pricing>
+- Sign up: <https://serpapi.com/users/sign_up>
 
-Create account here:  
-<https://serpapi.com/users/sign_up>
-
----
-
-## Using this with an assistant (easy mode)
-
-If you're using an agent like me, **you do not run these commands yourself**.
-
-You can just ask in plain English, for example:
-- "Find me hotel options in Mallorca from Sept 18 to Sept 27 for 1 adult."
-- "Compare Hotel Saratoga across booking sources."
-- "Give me the best value and best overall options."
-
-Under the hood, the assistant runs the scripts and handles the SerpAPI process for you.
+> Pricing can change, so always check the current plan details on SerpAPI.
 
 ---
 
-## 5-minute setup (manual mode, for power users)
+## 🖥️ Why this works well on VPS
 
-### Step 1) Create SerpAPI account
-- Sign up
-- Copy your API key from your SerpAPI dashboard
+Browser-heavy workflows on VPS can be painful:
+- dynamic pages fail to load
+- captchas/session issues break automation
+- results become inconsistent
 
-### Step 2) Save key in an `.env` file
-Put this line in one of these files:
-- `/home/clawdbot/.openclaw/.env` (preferred for this workflow)
-- or `~/.openclaw/.env`
+This skill is **script-first** (API-driven), so it is typically more reliable for unattended agent workflows.
 
-Line to add:
+---
+
+## 🧠 What process this follows
+
+1. Search destination + dates (`hotel-search.py`)
+2. Pick finalists (usually top 3–5)
+3. Compare each finalist across sources (`hotel-compare.py`)
+4. Return shortlist with tradeoffs and links
+
+This is the same process that was refined through real use.
+
+---
+
+## 📦 Repo contents
+
+- `SKILL.md` → agent instructions
+- `scripts/hotel-search.py` → broad hotel search
+- `scripts/hotel-compare.py` → source-by-source compare for one hotel
+- `scripts/accom.py` → convenience wrapper
+- `references/commands.md` → command cookbook
+- `references/response-template.md` → response format
+
+---
+
+## ⚡ Manual mode (optional, for power users)
+
+If you are not running this via an assistant, you can run it directly.
+
+<details>
+<summary><strong>Step 1 — Save API key</strong></summary>
+
+Put this in one of:
+- `/home/clawdbot/.openclaw/.env` (preferred)
+- `~/.openclaw/.env`
 
 ```bash
 SERPAPI_API_KEY=your_real_key_here
 ```
+</details>
 
-### Step 3) Run the search
-From the repo folder:
+<details>
+<summary><strong>Step 2 — Run search</strong></summary>
 
 ```bash
 cd ~/publish/hotel-search-skill
@@ -92,10 +107,10 @@ python3 scripts/hotel-search.py \
   --adults 1 --currency EUR --limit 10 \
   --json-out /tmp/hotel-search.json
 ```
+</details>
 
-That gives you initial hotel candidates.
-
-### Step 4) Compare one hotel across booking sources
+<details>
+<summary><strong>Step 3 — Compare one hotel across sources</strong></summary>
 
 ```bash
 python3 scripts/hotel-compare.py \
@@ -104,75 +119,28 @@ python3 scripts/hotel-compare.py \
   --adults 1 --currency EUR \
   --json-out /tmp/hotel-compare-saratoga.json
 ```
+</details>
 
 ---
 
-## Quick mode (simpler commands)
+## 💡 Simple troubleshooting
 
-If you don’t care about JSON files and just want terminal output:
-
-```bash
-python3 scripts/accom.py search --query "Mallorca" --check-in 2026-09-18 --check-out 2026-09-27 --adults 1 --currency EUR --limit 10
-python3 scripts/accom.py compare --hotel "Hotel Saratoga" --check-in 2026-09-18 --check-out 2026-09-27 --adults 1 --currency EUR
-```
-
----
-
-## How the workflow thinks
-
-- `hotel-search.py` = broad search (destination/date)
-- `hotel-compare.py` = verify finalists across providers
-- `accom.py` = wrapper command for convenience
-
-Recommended pattern:
-1. Search first
-2. Pick top 3–5
-3. Compare those finalists
-4. Recommend with confidence notes
+- **“SERPAPI_API_KEY is not set”**
+  - Key missing or `.env` not loaded.
+- **“Not enough SerpApi quota left”**
+  - Free/trial limit reached. Wait for reset or reduce compare calls.
+- **No results found**
+  - Try broader location terms, flexible dates, or fewer constraints.
 
 ---
 
-## Quota behavior (built in)
+## 🚫 Intentionally not included
 
-The scripts check SerpAPI quota before spending requests:
-- Search stops early if quota is very low
-- Compare stops early if quota is too low for a safe compare run
+- Airbnb support
+- Browser-clicking as primary workflow
 
-This protects free-tier users from burning credits accidentally.
-
----
-
-## Troubleshooting (simple)
-
-### “SERPAPI_API_KEY is not set”
-Your key is missing or `.env` was not loaded. Re-check Step 2 + Step 3.
-
-### “Not enough SerpApi quota left”
-You hit free-tier limits. Wait for reset or reduce compare calls.
-
-### “No results found”
-Try broader query terms (city only first), flexible dates, or fewer constraints.
+These were excluded to keep the flow stable on VPS.
 
 ---
 
-## What this skill intentionally does NOT include
-
-- Airbnb integration
-- Browser-clicking as primary path
-
-Those were intentionally excluded to keep VPS automation stable.
-
----
-
-## Repo contents
-
-- `SKILL.md` — instructions for the agent
-- `scripts/` — the executable SerpAPI workflow
-- `references/commands.md` — copy/paste command cookbook
-- `references/response-template.md` — output format
-- `references/search-playbook.md` — fallback guidance
-
----
-
-If you are non-technical: start with the **5-minute setup** above and copy/paste exactly.  
-You do not need to understand everything to get value from it.
+If you’re non-technical: **use assistant mode** and just ask in normal language.
