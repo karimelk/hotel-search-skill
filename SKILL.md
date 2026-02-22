@@ -1,126 +1,62 @@
 ---
 name: hotel-search
-description: Search, compare, and shortlist hotels or other short-stay accommodations using user-specified criteria (destination, dates, budget, area, amenities, policies, and trip intent). Use when a user asks for hotel search, recommendations, shortlists, stay comparisons, or “find me a place to stay” planning.
+description: Run the script-first SerpApi Google Hotels workflow used in this workspace. Use when a user asks for hotel options, accommodation shortlists, or booking-source price comparison. Execute bundled scripts (`scripts/hotel-search.py`, `scripts/hotel-compare.py`, or `scripts/accom.py`) with `SERPAPI_API_KEY`, quota-aware checks, and finalist comparison before recommending.
 ---
 
-# Hotel Search
+# Hotel Search (SerpApi Script-First)
 
-Find decision-ready hotel shortlists with verified details, clear tradeoffs, and direct booking links.
+Use the exact process that was hardened through real usage: search with SerpApi first, compare finalists across sources second, then present a concise shortlist.
 
-## Output Standard
+## Non-Negotiables
 
-- Return 3-6 recommendations by default unless the user asks for a different count.
-- Show source-backed facts and a UTC freshness timestamp.
-- Avoid claiming real-time availability unless a source explicitly shows availability for the requested dates.
+- Use bundled scripts first; do not default to generic `web_search`/`web_fetch`.
+- Load `SERPAPI_API_KEY` before every run.
+- Respect quota checks built into scripts.
+- Run source comparison on finalists before final recommendations whenever quota allows.
+- If key/quota blocks execution, tell the user and ask before switching to a non-SerpApi fallback.
 
-## Core Workflow
+## Inputs to Collect
 
-1. Capture the user criteria and confirm assumptions.
-2. Search broadly, then narrow quickly.
-3. Verify each shortlisted option.
-4. Rank options by fit and explain tradeoffs.
-5. Present a concise shortlist and next-step options.
+- Destination/query string
+- Check-in/check-out dates
+- Adults
+- Children count and ages (required when children > 0)
+- Currency (default `EUR`)
 
-## 1) Capture Criteria
+Optional: `gl`, `hl`, result limit, area/intent constraints.
 
-Collect the minimum required inputs first:
-- Destination (city/area)
-- Dates (exact check-in/check-out or date window)
-- Occupancy (adults, children, child ages when relevant)
-- Number of rooms
-- Budget target (per night or total)
+## Command Workflow
 
-Collect high-impact preferences when relevant:
-- Must-have amenities (Wi-Fi, breakfast, parking, gym, pool, workspace, kitchen)
-- Area preferences (walkability, central, near station/event)
-- Trip intent (business, family, romantic, nightlife, quiet)
-- Policy needs (free cancellation, pay at property, refundable)
-- Quality floor (star level, review score threshold)
-- Special constraints (accessibility, pet-friendly, late check-in)
+Follow the command templates in `references/commands.md`.
 
-If essential inputs are missing, ask concise follow-up questions before heavy searching.
-Batch follow-ups in one message (max 4 targeted questions).
-If the user declines to provide details, proceed with reasonable assumptions and label them explicitly.
+Default flow:
+1. Load env and verify key.
+2. Run `scripts/hotel-search.py` with `--json-out` for machine-readable results.
+3. Pick 3-5 finalists with usable prices.
+4. Run `scripts/hotel-compare.py` for each finalist.
+5. Build recommendation output using `references/response-template.md`.
 
-## 2) Search Broadly, Then Narrow
+Use `scripts/accom.py` only for quick terminal runs when JSON artifacts are not needed.
 
-Use `web_search` to discover candidates and `web_fetch` to extract comparable details.
-If pages are JS-heavy or blocked, use `browser` as a fallback.
+## Ranking Rules
 
-Start with 8-12 candidates, then narrow to 3-6 finalists.
+- Apply hard constraints first (budget ceiling, dates, occupancy, must-have policy/amenity).
+- Prefer lower total price when quality is similar.
+- Break ties with stronger rating/review depth and better cancellation flexibility.
+- Mark missing prices/policies explicitly; do not infer.
 
-Use query patterns from `references/search-playbook.md`.
+## Quota + Failure Handling
 
-Prefer multiple source types for each finalist:
-- Official property site (preferred)
-- Major OTA listing (Booking/Expedia/Hotels/etc.)
-- Review or map context when useful
+- `hotel-search.py` fails early when quota is too low (`<=1` searches left).
+- `hotel-compare.py` fails early when quota is too low (`<=2` searches left).
+- If quota is insufficient, return the exact quota message and ask whether to continue later or run a manual fallback.
+- If SerpApi returns no properties, broaden query (city only, then district), relax constraints, and retry once.
 
-Avoid listicle-only evidence for final recommendations.
+## Output Requirements
 
-## 3) Verify Finalists
+- Provide 3-6 options by default unless user requests another count.
+- Include: price snapshot, source, rating/review context, key tradeoff, and booking links.
+- Include verification note: which options were comparison-verified vs search-only.
+- Include data freshness timestamp in UTC.
 
-For each shortlisted property, verify core facts from at least two independent sources when possible:
-- Price point and currency
-- Tax/fee context (pre-tax base vs fee-inclusive total, if visible)
-- Cancellation/refund terms
-- Breakfast/fees/taxes notes (if visible)
-- Review score and source (plus review count when visible)
-- Distance/area fit relative to user priority
-
-Record source URLs and a UTC freshness timestamp.
-
-If only one source is available, explicitly label the item as **partially verified**.
-If live pricing is unstable or date windows are broad, label prices as **indicative**.
-If sources conflict, state the conflict and use the more conservative interpretation.
-Never invent missing policy or fee details.
-
-## 4) Rank by Fit
-
-Apply hard constraints first (must-haves, budget ceiling, location constraints).
-
-Then rank finalists with this default weighting:
-- Must-have fit: 35%
-- Price-to-value: 25%
-- Location fit: 20%
-- Review quality: 15%
-- Policy flexibility: 5%
-
-Adjust weights if the user states a clear priority (for example, “location matters most”).
-If two options tie, prefer stronger policy flexibility and higher verification confidence.
-
-## 5) Present Recommendations
-
-Use the structure in `references/response-template.md`.
-
-Always include:
-- Best overall pick
-- Best value pick
-- A context-specific pick (best location, best for work, best for families, etc.)
-
-For each option, include:
-- Name and neighborhood/area
-- Price snapshot (currency + tax/fee context + pricing caveat)
-- Why it matches the criteria
-- 1-2 tradeoffs
-- Policy highlight
-- Verification status and source count
-- Booking links
-
-When posting on Discord, avoid markdown tables; use short bullet lists.
-Wrap links in `<...>` to suppress noisy embeds when sharing multiple links.
-
-## Edge Cases
-
-If no strong matches exist:
-- Explain which constraints are causing low match quality.
-- Offer 2-3 relaxation options (date shift, radius expansion, amenity tradeoff, budget increase).
-- Re-run with the user’s preferred relaxation strategy.
-
-If dates are missing:
-- Offer a preliminary “best candidates by typical value” list.
-- Ask for dates before presenting “best price” or availability claims.
-
-If the user asks for only one recommendation:
-- Still evaluate at least 3 candidates internally.
-- Return one pick plus one backup option.
+When posting on Discord, use bullets (no markdown tables) and wrap multiple links in `<...>`.
