@@ -45,7 +45,20 @@ Create account here:
 
 ---
 
-## 5-minute setup (non-technical version)
+## Using this with an assistant (easy mode)
+
+If you're using an agent like me, **you do not run these commands yourself**.
+
+You can just ask in plain English, for example:
+- "Find me hotel options in Mallorca from Sept 18 to Sept 27 for 1 adult."
+- "Compare Hotel Saratoga across booking sources."
+- "Give me the best value and best overall options."
+
+Under the hood, the assistant runs the scripts and handles the SerpAPI process for you.
+
+---
+
+## 5-minute setup (manual mode, for power users)
 
 ### Step 1) Create SerpAPI account
 - Sign up
